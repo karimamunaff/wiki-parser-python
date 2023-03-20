@@ -2,4 +2,6 @@
 Wikipedia, Wikidata and Wiktionary Parser
 
 ## Update
-🚧 Repo Under Construction 🚧 Should have a first version ready soon
+🚧 Repo Under Construction 🚧 
+
+ETA for first version: April 15, 2023.
