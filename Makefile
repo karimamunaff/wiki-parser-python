@@ -42,6 +42,11 @@ endef
 enter-image: .make/build-image
 	docker run --rm -it --name $(DOCKER_CONTAINER_NAME) --mount source=$(LOCAL_DATA_DIRECTORY),target=$(DOCKER_DATA_DIRECTORY),type=bind $(DOCKER_IMAGE_NAME);
 
+.PHONY: format
+format: 
+	poetry run black .
+	poetry run isort .
+
 .PHONY: test
 test:
 	@$(call run_command, which python)
