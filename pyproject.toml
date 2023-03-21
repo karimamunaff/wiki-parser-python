@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "wiki-parser-python"
+version = "0.1.0"
+description = "Parser for Wikipedia, Wikidata and Wiktionary"
+authors = ["karimvision <kabdulmunaff@brandwatch.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+ray = "^2.3.0"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
