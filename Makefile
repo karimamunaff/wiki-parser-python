@@ -45,6 +45,10 @@ download_wikipedia:
 	wget --continue --directory-prefix=$(WIKIPEDIA_DOWNLOAD_DIRECTORY) $(WIKIPEDIA_DOWNLOAD_URL)
 	wget --continue --directory-prefix=$(WIKIPEDIA_DOWNLOAD_DIRECTORY) $(WIKIPEDIA_INDEX_DOWNLOAD_URL)
 
+.PHONY: tests
+tests:
+	poetry run pytest
+
 .PHONY: format
 format: 
 	poetry run black .

@@ -18,7 +18,7 @@ def get_all_dates_sorted(url: str) -> List[datetime]:
         try:
             date = datetime.strptime(date_link, "%Y%m%d/")
             dates.append(date)
-        except ValueError as e:
+        except ValueError:
             continue
     return sorted(dates, reverse=True)
 
