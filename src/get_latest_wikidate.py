@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import List
+from typing import List, Union
 from urllib.request import urlopen
 
 import requests
@@ -34,10 +34,10 @@ def date_to_string(date: datetime) -> str:
     return f"{date.year}{date.month:02d}{date.day:02d}"
 
 
-def get_completed_wikimedia_dumpdate(dump_type: str) -> str:
+def get_completed_wikimedia_dumpdate(dump_type: str) -> Union[datetime.date, None]:
     dump_url = f"https://dumps.wikimedia.org/{dump_type}/"
     available_dates_sorted = get_all_dates_sorted(dump_url)
-    completed_dumpdate = ""
+    completed_dumpdate = None
     for date in available_dates_sorted:
         date_string = date_to_string(date)
         if is_dumpdate_complete(dump_type, date_string):
@@ -57,7 +57,3 @@ def get_date() -> str:
     valid_dump_date = min(wikimedia_completed_dumpdates)
     valid_dump_date = date_to_string(valid_dump_date)
     return valid_dump_date
-
-
-if __name__ == "__main__":
-    print(get_date())
