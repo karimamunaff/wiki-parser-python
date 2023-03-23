@@ -1,6 +1,6 @@
 
 # Build from Python Image
-FROM python:3.11-slim-bullseye
+FROM python:3.10.10-slim-bullseye
 
 ARG WORKING_DIRECTORY="/wiki-parser-python"
 
@@ -14,15 +14,15 @@ WORKDIR $WORKING_DIRECTORY
 COPY . $WORKING_DIRECTORY
 
 # # Install system essentials
-# RUN apt-get update 
-# RUN apt-get -y install build-essential
-# RUN apt-get -y install tmux
-# RUN pip install -U pip
+RUN apt-get update 
+RUN apt-get -y install build-essential
+RUN apt-get -y install tmux
+RUN pip install -U pip
 
-# # install poetry
-# RUN pip install -U "poetry==$POETRY_VERSION"
+# install poetry
+RUN pip install -U "poetry==$POETRY_VERSION"
 
-# # install python packages
-# RUN POETRY_VIRTUALENVS_CREATE=false poetry install --no-interaction --no-ansi
+# install python packages
+RUN poetry install --no-interaction --no-ansi
 
 ENTRYPOINT bash
