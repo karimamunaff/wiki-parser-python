@@ -26,14 +26,15 @@ define run_command_in_docker
 	## ----------------------------------------------------------------------
 	## This function runs bash commands in docker
 	## Running commands in docker follows three steps
-	## 1. Start and Run Docker Container, 
-	## 2. Run Commands in Container
-	## 3. Remove Container
+	## 1. Remove any Dangling Docker Container
+	## 2. Start and Run Docker Container 
+	## 3. Run Commands in Container
+	## 4. Remove Container
 	## ----------------------------------------------------------------------
-	docker rm -f $(DOCKER_CONTAINER_NAME)
-	docker run -dit -it --name $(DOCKER_CONTAINER_NAME) --mount type=bind,source=$(LOCAL_DATA_DIRECTORY),target=$(DOCKER_DATA_DIRECTORY) $(DOCKER_IMAGE_NAME)
-	docker exec $(DOCKER_CONTAINER_NAME) ${1}
-	docker rm -f $(DOCKER_CONTAINER_NAME)
+	docker rm -f $(DOCKER_CONTAINER_NAME) &>/dev/null
+	docker run -dit -it --name $(DOCKER_CONTAINER_NAME) --mount type=bind,source=$(LOCAL_DATA_DIRECTORY),target=$(DOCKER_DATA_DIRECTORY) $(DOCKER_IMAGE_NAME) &>/dev/null
+	docker exec -it $(DOCKER_CONTAINER_NAME) ${1}
+	docker rm -f $(DOCKER_CONTAINER_NAME) &>/dev/null
 endef
 
 .PHONY: enter-image
@@ -45,10 +46,16 @@ download_wikipedia:
 	wget --continue --directory-prefix=$(WIKIPEDIA_DOWNLOAD_DIRECTORY) $(WIKIPEDIA_DOWNLOAD_URL)
 	wget --continue --directory-prefix=$(WIKIPEDIA_DOWNLOAD_DIRECTORY) $(WIKIPEDIA_INDEX_DOWNLOAD_URL)
 
-.PHONY: tests
-tests:
-	poetry run pytest
+.PHONY: tests/unit
+tests/unit:
+	@echo "Running unit tests ..."
+	@$(call run_command_in_docker, poetry run pytest tests/unit)
 
+.PHONY: tests/coverage-report
+tests/coverage-report:
+	@echo "Getting test coverage report ..."
+	@$(call run_command_in_docker, poetry run coverage run -m pytest && poetry run coverage html -d tests/coverage_report src/**.py)
+	
 .PHONY: format
 format: 
 	poetry run black .
