@@ -17,8 +17,7 @@ COPY . $WORKING_DIRECTORY
 
 # Install system essentials
 RUN apt-get update 
-RUN apt-get -y install build-essential
-RUN apt-get -y install tmux
+RUN apt-get -y install build-essential tmux
 RUN pip install -U pip
 
 # install poetry
