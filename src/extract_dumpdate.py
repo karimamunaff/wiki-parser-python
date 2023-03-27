@@ -2,9 +2,6 @@ import re
 from datetime import datetime
 from typing import List
 import requests
-from src.logger import get_logger
-
-_LOGGER = get_logger(__file__)
 
 WIKI_DUMPS_URL = "https://dumps.wikimedia.org"
 
@@ -24,7 +21,6 @@ def get_dump_status_url(wiki_project: str, date: datetime) -> str:
 
 def is_upload_done(wiki_project: str, date: datetime.date) -> bool:
     status_url = get_dump_status_url(wiki_project, date)
-    print(status_url)
     status_json = requests.get(status_url).json()
     completion_status = status_json["jobs"]["articlesdump"]["status"]
     return completion_status == "done"
@@ -36,7 +32,6 @@ def get_dates_from_dumpurl(url: str) -> List[datetime]:
     for date_link in page_links:
         try:
             date = datetime.strptime(date_link, "%Y%m%d/")
-            print(date)
             dates.append(date)
         except ValueError:
             continue
@@ -77,7 +72,7 @@ def _get_intersection(list_of_lists: List[List[datetime.date]]):
     return set.intersection(*map(set, list_of_lists))
 
 
-def get_recent_common(wiki_projects: List[str] = ["enwiki", "wikidatawiki"]):
+def get_recent_common(wiki_projects: List[str] = ["enwiki", "wikidatawiki"]) -> str:
     """Get most recent completed dump date across all wiki projects"""
     completed_dates_all = [
         [dates for dates in find_completed_dumpdates(wiki_project)]
