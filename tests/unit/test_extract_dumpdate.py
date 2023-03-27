@@ -5,10 +5,14 @@ from src.extract_dumpdate import (
     is_upload_done,
     get_dates_from_dumpurl,
     find_completed_dumpdates,
+    get_recent,
+    get_recent_wikidata,
+    get_recent_wikipedia,
 )
 from datetime import date, datetime
 from unittest.mock import patch
 from src.paths import SAMPLE_DUMPPAGE_CONTENT_FILE
+import pytest
 
 
 @patch("requests.get")
@@ -67,6 +71,20 @@ def test_get_dates_from_dumpurl(mocked_page_links: callable) -> None:
 
 @patch("src.extract_dumpdate.is_upload_done")
 @patch("src.extract_dumpdate.get_dates_from_dumpurl")
+def test_no_dumpdate_found_error(
+    mocked_dates: callable, mocked_is_upload_done: callable
+) -> None:
+    mocked_dates.return_value = [
+        date(year=1989, month=5, day=3),
+        date(year=1999, month=2, day=3),
+    ]
+    mocked_is_upload_done.return_value = False
+    with pytest.raises(Exception):
+        find_completed_dumpdates("dummy")
+
+
+@patch("src.extract_dumpdate.is_upload_done")
+@patch("src.extract_dumpdate.get_dates_from_dumpurl")
 def test_find_completed_dumpdates(
     mocked_dates: callable, mocked_is_upload_done: callable
 ) -> None:
@@ -76,5 +94,14 @@ def test_find_completed_dumpdates(
     ]
     mocked_is_upload_done.return_value = True
     assert find_completed_dumpdates("dummy") == mocked_dates.return_value
-    mocked_is_upload_done.return_value = False
-    assert not find_completed_dumpdates("dummy")
+
+
+@patch("src.extract_dumpdate.find_completed_dumpdates")
+def test_get_recent(mocked_completed_dates) -> None:
+    mocked_completed_dates.return_value = [
+        date(year=1989, month=5, day=3),
+        date(year=1999, month=2, day=3),
+    ]
+    assert get_recent("dummy") == date(year=1999, month=2, day=3)
+    assert get_recent_wikipedia() == date(year=1999, month=2, day=3)
+    assert get_recent_wikidata() == date(year=1999, month=2, day=3)
