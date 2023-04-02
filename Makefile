@@ -9,7 +9,7 @@ TEST_COVERAGE_REPORT_DIRECTORY = documentation/docs/test_coverage_report
 $(eval COMPLETED_DUMPDATE := $(shell export PYTHONPATH="${PYTHONPATH}:$$CURDIR../../" && poetry run python -c 'from src.extract_dumpdate import get_recent_common; print(get_recent_common())'))
 WIKI_DUMP_DATE ?= $(COMPLETED_DUMPDATE)
 WIKI_DUMP_URL = https://dumps.wikimedia.org
-
+WIKI_DATA_DIRECTORY ?= $(DATA_DIRECTORY)/$(WIKI_DUMP_DATE)/
 
 
 .make/build-image:
@@ -46,7 +46,7 @@ define run_command
 endef
 
 define download_wiki
-	$(eval DOWNLOAD_DIRECTORY := $(DATA_DIRECTORY)${1}/$(WIKI_DUMP_DATE))
+	$(eval DOWNLOAD_DIRECTORY := $(WIKI_DATA_DIRECTORY)/${1}/)
 	wget --continue --directory-prefix=$(DOWNLOAD_DIRECTORY) $(WIKI_DUMP_URL)/${1}/$(WIKI_DUMP_DATE)/${1}-$(WIKI_DUMP_DATE)-pages-articles-multistream.xml.bz2
 	wget --continue --directory-prefix=$(DOWNLOAD_DIRECTORY) $(WIKI_DUMP_URL)/${1}/$(WIKI_DUMP_DATE)/${1}-$(WIKI_DUMP_DATE)-pages-articles-multistream-index.txt.bz2
 endef
