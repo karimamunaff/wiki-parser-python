@@ -1,9 +1,14 @@
 import os
 from pathlib import Path
 
+PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
+
 USER_DATA_DIRECTORY = os.environ.get("DATA_DIRECTORY")
 DATA_DIRECTORY = Path(USER_DATA_DIRECTORY if USER_DATA_DIRECTORY else "data/")
 
-PROJECT_DIRECTORY = Path(__file__).resolve().parents[1]
+USER_WIKI_DUMP_DATE = os.environ.get("WIKI_DUMP_DATE")
+WIKI_DUMP_DATE = USER_WIKI_DUMP_DATE if USER_WIKI_DUMP_DATE else ""
+WIKIPEDIA_DIRECTORY = DATA_DIRECTORY / WIKI_DUMP_DATE
+
 TEST_DATA_DIRECTORY = PROJECT_DIRECTORY / "tests" / "data"
 SAMPLE_DUMPPAGE_CONTENT_FILE = TEST_DATA_DIRECTORY / "sample_dumppage_content"
