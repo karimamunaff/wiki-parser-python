@@ -3,6 +3,7 @@ from bz2 import BZ2File
 from typing import Protocol
 from dataclasses import dataclass
 from logger import get_logger
+from pathlib import Path
 
 _LOGGER = get_logger(__file__)
 
@@ -18,35 +19,34 @@ class Bz2Handler(Protocol):
     def iterate_articles():
         ...
 
-    def save():
-        ...
 
-
-class WikipediaAriclesIterator:
+class WikipediaBZ2Handler(Bz2Handler):
     @staticmethod
-    def cleanup_tag(tag: str) -> str:
+    def cleanup_xml_tag(tag: str) -> str:
         cleanup_till_index = tag.rfind("}")
         return tag[cleanup_till_index + 1 :] if cleanup_till_index != -1 else tag
 
-    def iterate_articles(self, xmlfile: BZ2File) -> WikipediaArticle:
-        current_title = ""
-        for event, content in etree.iterparse(xmlfile, events=("start", "end")):
-            if event == "start":
-                continue
-            tag = self.cleanup_tag(content.tag)
+    def iterate_articles(self, bz2_file: Path) -> WikipediaArticle:
+        with BZ2File(bz2_file, "r") as xmlfile:
+            current_title = ""
+            for event, content in etree.iterparse(xmlfile, events=("start", "end")):
+                if event == "start":
+                    continue
 
-            # title
-            if tag == "title":
-                current_title = content.text
+                tag = self.cleanup_xml_tag(content.tag)
 
-            # article text
-            elif (
-                tag == "text"
-                and (content.text is not None)
-                and (not content.text.startswith("#REDIRECT"))
-            ):
-                yield WikipediaArticle(current_title, content.text, False)
+                # title
+                if tag == "title":
+                    current_title = content.text
 
-            # redirect
-            elif tag == "redirect":
-                yield WikipediaArticle(current_title, content.attrib["title"], True)
+                # article text
+                elif (
+                    tag == "text"
+                    and (content.text is not None)
+                    and (not content.text.startswith("#REDIRECT"))
+                ):
+                    yield WikipediaArticle(current_title, content.text, False)
+
+                # redirect
+                elif tag == "redirect":
+                    yield WikipediaArticle(current_title, content.attrib["title"], True)
