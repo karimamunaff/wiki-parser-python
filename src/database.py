@@ -1,8 +1,8 @@
 import sqlite3
 from extract_wiki import WikipediaBZ2Handler, WikipediaArticle
 from bz2 import BZ2File
-from typing import List, Tuple, Any, Union
-
+from typing import List, Tuple, Any
+from tqdm import tqdm
 
 REDIRECTS_DATABASE_NAME = "redirects"
 
@@ -76,5 +76,9 @@ def insert_article_and_redirect(article: WikipediaArticle) -> None:
 def save_redirects(xmlfile: BZ2File):
     create_database()
     bz2_handler = WikipediaBZ2Handler()
+    progress_bar = tqdm()
+    progress_bar.set_description("Inserting Redirects Into Database ...")
     for article in bz2_handler.iterate_articles(xmlfile):
         insert_article_and_redirect(article)
+        progress_bar.update(1)
+    progress_bar.close()
