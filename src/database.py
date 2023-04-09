@@ -187,9 +187,7 @@ class Table:
 
 
 def test():
-    a = Table(
-        name="articles", columns=ArticlesTableColumns(article_id=1, title="test1")
-    )
+    a = Table(name="articles", columns=ArticlesTableColumns())
     a.create()
     a.insert(
         [
