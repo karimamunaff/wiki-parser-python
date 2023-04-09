@@ -101,6 +101,14 @@ class TableColumns(Protocol):
     def unique_columns(self) -> List[str]:
         ...
 
+    @property
+    def column_names(self) -> Tuple[str]:
+        ...
+
+    @property
+    def column_values(self):
+        ...
+
 
 @dataclass
 class ArticlesTableColumns:
