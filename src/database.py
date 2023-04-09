@@ -1,11 +1,8 @@
 import sqlite3
 from typing import List, Tuple, Protocol, Union
-from logger import get_logger
 from paths import METADATA_DATABASE_FILE
 from tqdm import tqdm
 from dataclasses import dataclass, field
-
-_LOGGER = get_logger(__file__)
 
 
 @dataclass
@@ -36,7 +33,6 @@ class DatabaseQuery:
             result = cursor.fetchall()
         if self.commit:
             connection.commit()
-            _LOGGER.info(f"Commiting Query {self.query} to database")
         return result
 
     def execute(self, batch_size=100) -> List[Tuple]:
@@ -49,13 +45,9 @@ class DatabaseQuery:
         cursor = connection.cursor()
         if not self.arguments:
             return self.execute_batch(connection, cursor)
-        progress_bar = tqdm()
-        progress_bar.set_description("Executing Query in Batches")
         for arguments_batch in self.get_batch(self.arguments, batch_size):
             results_batch = self.execute_batch(connection, cursor, arguments_batch)
             results.extend(results_batch)
-            progress_bar.update(len(results_batch))
-        progress_bar.close()
         connection.close()
         return results
 
