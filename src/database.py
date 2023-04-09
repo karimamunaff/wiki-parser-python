@@ -128,7 +128,7 @@ class ArticlesTableColumns:
 
     @property
     def unique_columns(self) -> List[str]:
-        return ["title"]
+        return []
 
     @property
     def column_names(self) -> Tuple[str]:
@@ -171,7 +171,9 @@ class Table:
         query = self.get_create_query()
         DatabaseQuery(query=query, commit=True).execute()
 
-    def insert(self, columns_collection: List[TableColumns]) -> None:
+    def insert(
+        self, columns_collection: List[TableColumns], batch_size: int = 1000
+    ) -> None:
         column_names = columns_collection[0].column_names
         column_values_collection = [
             columns.column_values for columns in columns_collection
@@ -181,13 +183,14 @@ class Table:
                     VALUES ({','.join(['?']*len(column_names))})",
             arguments=column_values_collection,
             commit=True,
-        ).execute()
+        ).execute(batch_size)
 
     def update(
         self,
         column_names: List[str],
         updated_values: List[List[Union[int, str]]],
         indices: List[int],
+        batch_size: int = 1000,
     ) -> None:
         query_arguments = [values + [id] for values, id in zip(updated_values, indices)]
         set_string = (
@@ -201,7 +204,7 @@ class Table:
                     WHERE id = ?;",
             arguments=query_arguments,
             commit=True,
-        ).execute()
+        ).execute(batch_size)
 
     def select(self, column_names: List[str]) -> None:
         return DatabaseQuery(

@@ -61,16 +61,16 @@ def iterate_index_file(batch_size=1000) -> List[ArticlesTableColumns]:
         return article_columns_collection
 
 
-def store_article_basics(batch_size=1000):
+def store_article_basics(batch_size=1000000):
     database_table = Table(name="articles", columns=ArticlesTableColumns())
     database_table.create()
     progress_bar = tqdm()
     progress_bar.set_description("Inserting article basics to database ...")
     for article_columns_colection in iterate_index_file(batch_size):
-        database_table.insert(article_columns_colection)
+        database_table.insert(article_columns_colection, batch_size=batch_size)
         progress_bar.update(batch_size)
     progress_bar.close()
 
 
 if __name__ == "__main__":
-    store_article_basics(batch_size=1000)
+    store_article_basics(batch_size=1000000)
