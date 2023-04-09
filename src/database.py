@@ -169,12 +169,11 @@ class Table:
 
     def insert(self, columns_collection: List[TableColumns]) -> None:
         column_names = columns_collection[0].column_names
-        column_names_to_string = ",".join(column_names)
         column_values_collection = [
             columns.column_values for columns in columns_collection
         ]
         DatabaseQuery(
-            query=f"INSERT INTO {self.name} ({column_names_to_string}) \
+            query=f"INSERT INTO {self.name} ({','.join(column_names)}) \
                     VALUES ({','.join(['?']*len(column_names))})",
             commit=True,
             arguments=column_values_collection,
