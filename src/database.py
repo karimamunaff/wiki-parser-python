@@ -211,6 +211,9 @@ class Table:
             query=f"SELECT {','.join(column_names)} FROM {self.name}", fetch=True
         ).execute()
 
+    def select_query(self, query: str) -> None:
+        return DatabaseQuery(query=query, fetch=True).execute()
+
 
 def test():
     a = Table(name="articles", columns=ArticlesTableColumns())

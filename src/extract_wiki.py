@@ -58,7 +58,17 @@ def iterate_index_file(batch_size=1000) -> List[ArticlesTableColumns]:
             if int(len(article_columns_collection) / batch_size) == 1:
                 yield article_columns_collection
                 article_columns_collection = []
-        return article_columns_collection
+    # last chunk of articles, offset end in this case is the last byte of the file (-1)
+    article_columns_collection.extend(
+        generate_article_columns(
+            article_ids_collection,
+            article_titles_collection,
+            previous_offset,
+            -1,
+            line_number,
+        )
+    )
+    yield article_columns_collection
 
 
 def store_article_basics(batch_size=1000000):
