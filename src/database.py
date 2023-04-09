@@ -191,6 +191,9 @@ class Table:
             arguments=column_values_collection,
         ).execute()
 
+    def update(self, column_names=List[str]) -> None:
+        pass
+
     def select(self, column_names=List[str]) -> None:
         return DatabaseQuery(
             query=f"SELECT {','.join(column_names)} FROM {self.name}", fetch=True
