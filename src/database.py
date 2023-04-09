@@ -1,5 +1,5 @@
 import sqlite3
-from typing import List, Tuple, Protocol
+from typing import List, Tuple, Protocol, Union
 from logger import get_logger
 from paths import METADATA_DATABASE_FILE
 from tqdm import tqdm
@@ -71,7 +71,7 @@ class ColumnConfiguration:
     def create_query_suffix(self) -> str:
         """
         get suffix needed to create sql table using create query
-        e.g. article_id INTEGER PRIMARY KEY NOT_NULL
+        e.g. id INTEGER PRIMARY KEY NOT_NULL
         this would then appended to create sql command while creating table
         """
         suffix = f"[{self.name}] {self.data_type}"
@@ -112,7 +112,7 @@ class TableColumns(Protocol):
 
 @dataclass
 class ArticlesTableColumns:
-    article_id: int = None
+    id: int = None
     title: str = None
     namespace_id: int = None
     bz2_offset_start: int = None
@@ -128,7 +128,7 @@ class ArticlesTableColumns:
     @property
     def primary_key(self) -> str:
         # todo: get this from variable names above
-        return "article_id"
+        return "id"
 
     @property
     def not_null_columns(self) -> List[str]:
@@ -187,14 +187,31 @@ class Table:
         DatabaseQuery(
             query=f"INSERT INTO {self.name} ({','.join(column_names)}) \
                     VALUES ({','.join(['?']*len(column_names))})",
-            commit=True,
             arguments=column_values_collection,
+            commit=True,
         ).execute()
 
-    def update(self, column_names=List[str]) -> None:
-        pass
+    def update(
+        self,
+        column_names: List[str],
+        updated_values: List[List[Union[int, str]]],
+        indices: List[int],
+    ) -> None:
+        query_arguments = [values + [id] for values, id in zip(updated_values, indices)]
+        set_string = (
+            " = ?, ".join(column_names)
+            if len(column_names) > 1
+            else f"{column_names[0]} = ?"
+        )
+        DatabaseQuery(
+            query=f"UPDATE {self.name} \
+                    SET {set_string} \
+                    WHERE id = ?;",
+            arguments=query_arguments,
+            commit=True,
+        ).execute()
 
-    def select(self, column_names=List[str]) -> None:
+    def select(self, column_names: List[str]) -> None:
         return DatabaseQuery(
             query=f"SELECT {','.join(column_names)} FROM {self.name}", fetch=True
         ).execute()
@@ -205,8 +222,9 @@ def test():
     a.create()
     a.insert(
         [
-            ArticlesTableColumns(article_id=1, title="test"),
-            ArticlesTableColumns(article_id=2, title="test2"),
+            ArticlesTableColumns(id=1, title="test"),
+            ArticlesTableColumns(id=2, title="test2"),
         ]
     )
+    a.update(column_names=["title"], updated_values=[["test5"]], indices=[1])
     print(a.select(column_names=["title"]))
