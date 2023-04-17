@@ -232,7 +232,7 @@ class Table:
             columns.column_values for columns in columns_collection
         ]
         DatabaseQuery(
-            query=f"INSERT IGNORE INTO {self.name} ({','.join(column_names)}) \
+            query=f"INSERT OR IGNORE INTO {self.name} ({','.join(column_names)}) \
                     VALUES ({','.join(['?']*len(column_names))})",
             arguments=column_values_collection,
             commit=True,
