@@ -1,4 +1,4 @@
-from src.extract_dumpdate import _get_page_links, _date_to_string
+from src.dumpdate import _get_page_links, _date_to_string
 from datetime import datetime, timedelta
 from typing import List
 

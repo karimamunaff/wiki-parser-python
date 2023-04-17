@@ -1,4 +1,4 @@
-from src.extract_dumpdate import (
+from src.dumpdate import (
     _get_page_links,
     _date_to_string,
     get_dump_status_url,
