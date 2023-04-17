@@ -107,13 +107,18 @@ def extract_columns_from_xml(
     return extracted_article_columns
 
 
+def is_last_chunk(offset: int) -> bool:
+    return offset == -1
+
+
 def decompress_between_offsets(
     bz2_file: BinaryIO, offset_start: int, offset_end: int
 ) -> str:
     bz2_file.seek(offset_start)
-    article_text_bytes = bz2_file.read(offset_end - offset_start)
-    article_text_xml = BZ2Decompressor().decompress(article_text_bytes)
-    return article_text_xml
+    offset = offset_end - offset_start
+    bytes = bz2_file.read() if is_last_chunk(offset) else bz2_file.read(offset)
+    articles_text_xml = BZ2Decompressor().decompress(bytes)
+    return articles_text_xml
 
 
 @ray.remote
