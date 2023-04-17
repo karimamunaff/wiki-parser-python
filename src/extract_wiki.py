@@ -1,9 +1,15 @@
+from bz2 import BZ2Decompressor, BZ2File
+from io import BytesIO
+from typing import Any, BinaryIO, List, Tuple
+
+import ray
 from lxml import etree
-from bz2 import BZ2File
-from paths import ENWIKI_INDEX_BZ2_FILE
-from database import ArticlesTableColumns, Table
 from tqdm import tqdm
-from typing import List
+
+from database import ArticlesTableColumns, Table
+from paths import ENWIKI_ARTICLES_BZ2_FILE, ENWIKI_INDEX_BZ2_FILE
+
+ray.init(address="auto")
 
 
 def generate_article_columns(
@@ -72,6 +78,13 @@ def iterate_index_file(batch_size=1000) -> List[ArticlesTableColumns]:
 
 
 def store_article_basics(batch_size=1000000):
+    """
+    Store article basics from wikipedia index bz2 file to database
+    for each article, this function stores the following data
+    - aricle id and title name
+    - offset start/end of article chunks (100 articles per chunk),
+    - index of article inside a chunk
+    """
     database_table = Table(name="articles", columns=ArticlesTableColumns())
     database_table.create()
     progress_bar = tqdm()
@@ -82,5 +95,92 @@ def store_article_basics(batch_size=1000000):
     progress_bar.close()
 
 
+def extract_columns_from_xml(
+    xml_string: bytes, return_text: bool = False
+) -> List[ArticlesTableColumns]:
+    xml_string = b"<root> " + xml_string + b" </root>"
+    parsed_xml = etree.parse(BytesIO(xml_string))
+    extracted_article_columns = [
+        ArticlesTableColumns.from_xml_page(article_page, return_text)
+        for article_page in parsed_xml.xpath("page")
+    ]
+    return extracted_article_columns
+
+
+def decompress_between_offsets(
+    bz2_file: BinaryIO, offset_start: int, offset_end: int
+) -> str:
+    bz2_file.seek(offset_start)
+    article_text_bytes = bz2_file.read(offset_end - offset_start)
+    article_text_xml = BZ2Decompressor().decompress(article_text_bytes)
+    return article_text_xml
+
+
+@ray.remote
+def get_article_columns_between(
+    offset_start: int,
+    offset_end: int,
+    return_text: bool = False,
+) -> List[ArticlesTableColumns]:
+    with open(ENWIKI_ARTICLES_BZ2_FILE, "rb") as bz2_file:
+        article_texts_xml = decompress_between_offsets(
+            bz2_file, offset_start, offset_end
+        )
+        article_columns_collection = extract_columns_from_xml(
+            article_texts_xml, return_text
+        )
+    return article_columns_collection
+
+
+def get_batch(data: List[Any], batch_size: int = 1000):
+    total_length = len(data)
+    for index in range(0, total_length, batch_size):
+        yield data[index : min(index + batch_size, total_length)]
+
+
+def get_article_basics() -> List[Tuple[int, int, int]]:
+    articles_database = Table(name="articles", columns=ArticlesTableColumns())
+    article_basic_data = articles_database.select_query(
+        "select distinct bz2_offset_start, bz2_offset_end from articles"
+    )
+    return article_basic_data
+
+
+@ray.remote
+def update_article_metadata_batch(
+    article_basic_batch: List[Tuple[int, int, int]]
+) -> None:
+    articles_database = Table(name="articles", columns=ArticlesTableColumns())
+
+    article_columns = [
+        get_article_columns_between.remote(offset_start, offset_end)
+        for (offset_start, offset_end) in article_basic_batch
+    ]
+    article_columns = ray.get(article_columns)
+    article_columns = [column for chunk in article_columns for column in chunk]
+    column_names_to_update = ArticlesTableColumns().post_update_columns
+    updated_values = [
+        [column.__dict__[name] for name in column_names_to_update]
+        for column in article_columns
+    ]
+    articles_database.update(
+        column_names=column_names_to_update,
+        updated_values=updated_values,
+        indices=[column.id for column in article_columns],
+    )
+
+
+def update_articles_metadata(batch_size=100) -> None:
+    article_basics = get_article_basics()
+    print
+    ray.get(
+        [
+            update_article_metadata_batch.remote(batch)
+            for batch in get_batch(article_basics, batch_size=batch_size)
+        ]
+    )
+
+
 if __name__ == "__main__":
     store_article_basics(batch_size=1000000)
+    update_articles_metadata(100)

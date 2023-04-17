@@ -1,8 +1,14 @@
 import sqlite3
 from typing import List, Tuple, Protocol, Union
 from paths import METADATA_DATABASE_FILE
-from tqdm import tqdm
 from dataclasses import dataclass, field
+from lxml import etree
+import re
+from regex_collection import (
+    LINKS_REGEX,
+    SECTIONS_AND_SUBSECTIONS_REGEX,
+    SHORT_DESCRPTION_REGEX,
+)
 
 
 @dataclass
@@ -106,16 +112,17 @@ class TableColumns(Protocol):
 class ArticlesTableColumns:
     id: int = None
     title: str = None
-    namespace_id: int = None
+    text: str = None
     bz2_offset_start: int = None
     bz2_offset_end: int = None
     bz2_index_chunk_id: int = None
+    namespace_id: int = None
+    redirected_article_title: str = None
     is_good_article: bool = None
     short_description: str = None
     total_links: int = None
     total_characters: int = None
     total_sections: int = None
-    total_redirections: int = None
 
     @property
     def primary_key(self) -> str:
@@ -137,6 +144,52 @@ class ArticlesTableColumns:
     @property
     def column_values(self):
         return tuple(self.__dict__[name] for name in self.column_names)
+
+    @classmethod
+    def from_xml_page(cls, article_page: etree._Element, return_text: bool = False):
+        redirect = article_page.xpath("redirect")
+        redirected_title = redirect[0].attrib["title"] if redirect else None
+        article_text = article_page.xpath("revision")[0].xpath("text")[0].text
+        article_text = "" if article_text is None else article_text
+        short_description = re.findall(SHORT_DESCRPTION_REGEX, article_text)
+        short_description = short_description[0] if len(short_description) > 0 else None
+        return cls(
+            id=int(article_page.xpath("id")[0].text),
+            title=article_page.xpath("title")[0].text,
+            text=article_text if return_text else None,
+            redirected_article_title=redirected_title,
+            namespace_id=int(article_page.xpath("ns")[0].text),
+            is_good_article="{{good article}}" in article_text,
+            short_description=short_description,
+            total_links=len(re.findall(LINKS_REGEX, article_text)),
+            total_characters=len(article_text),
+            total_sections=len(
+                re.findall(SECTIONS_AND_SUBSECTIONS_REGEX, article_text)
+            ),
+        )
+
+    @property
+    def basic_columns(self):
+        """these columns are updated using information from bz2 index file"""
+        return [
+            "id",
+            "title",
+            "bz2_offset_start",
+            "bz2_offset_end",
+            "bz2_index_chunk_id",
+        ]
+
+    @property
+    def post_update_columns(self):
+        """
+        these columns are not updated using index bz2 file
+        but later using the bigger articles bz2 file
+        """
+        return [
+            column
+            for column in self.__annotations__.keys()
+            if column not in self.basic_columns
+        ]
 
 
 @dataclass
@@ -179,7 +232,7 @@ class Table:
             columns.column_values for columns in columns_collection
         ]
         DatabaseQuery(
-            query=f"INSERT INTO {self.name} ({','.join(column_names)}) \
+            query=f"INSERT IGNORE INTO {self.name} ({','.join(column_names)}) \
                     VALUES ({','.join(['?']*len(column_names))})",
             arguments=column_values_collection,
             commit=True,
@@ -198,10 +251,9 @@ class Table:
             if len(column_names) > 1
             else f"{column_names[0]} = ?"
         )
+        set_string += " = ?"
         DatabaseQuery(
-            query=f"UPDATE {self.name} \
-                    SET {set_string} \
-                    WHERE id = ?;",
+            query=f"UPDATE {self.name} SET {set_string} WHERE id = ?;",
             arguments=query_arguments,
             commit=True,
         ).execute(batch_size)
@@ -211,8 +263,8 @@ class Table:
             query=f"SELECT {','.join(column_names)} FROM {self.name}", fetch=True
         ).execute()
 
-    def select_query(self, query: str) -> None:
-        return DatabaseQuery(query=query, fetch=True).execute()
+    def select_query(self, query: str, batch_size: int = 10000) -> None:
+        return DatabaseQuery(query=query, fetch=True).execute(batch_size)
 
 
 def test():

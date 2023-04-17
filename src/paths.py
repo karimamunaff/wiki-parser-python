@@ -41,6 +41,14 @@ ENWIKI_ARTICLES_BZ2_FILE = (
     / "enwiki"
     / f"enwiki-{WIKI_DATE}-pages-articles-multistream.xml.bz2"
 )
+
+ENWIKI_INDEX_BZ2_FILE = (
+    WIKIPEDIA_DATA_DIRECTORY
+    / WIKI_DATE
+    / "enwiki"
+    / f"enwiki-{WIKI_DATE}-pages-articles-multistream-index.txt.bz2"
+)
+
 WIKIDATA_ARTICLES_BZ2_FILE = (
     WIKIPEDIA_DATA_DIRECTORY
     / WIKI_DATE
