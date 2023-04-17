@@ -79,7 +79,7 @@ def iterate_index_file(batch_size=1000) -> List[ArticlesTableColumns]:
 
 def store_article_basics(batch_size=1000000):
     """
-    Store article basics from wikipedia index bz2 file to database
+    Store article basics from pages-articles-multistream-index.txt.bz2
     for each article, this function stores the following data
     - aricle id and title name
     - offset start/end of article chunks (100 articles per chunk),
@@ -148,12 +148,14 @@ def get_article_basics() -> List[Tuple[int, int, int]]:
 
 @ray.remote
 def update_article_metadata_batch(
-    article_basic_batch: List[Tuple[int, int, int]]
+    article_basic_batch: List[Tuple[int, int, int]], store_raw_text: bool = False
 ) -> None:
     articles_database = Table(name="articles", columns=ArticlesTableColumns())
 
     article_columns = [
-        get_article_columns_between.remote(offset_start, offset_end)
+        get_article_columns_between.remote(
+            offset_start, offset_end, return_text=store_raw_text
+        )
         for (offset_start, offset_end) in article_basic_batch
     ]
     article_columns = ray.get(article_columns)
@@ -170,17 +172,48 @@ def update_article_metadata_batch(
     )
 
 
-def update_articles_metadata(batch_size=100) -> None:
+def update_article_metadata(
+    batch_size: int = 100, store_raw_text: bool = False
+) -> None:
+    """
+    metadata information extracted from pages-articles-multistream.xml.bz2
+    This includes the following information stored in database,
+    - redirected article title if article is a redirect
+    - total number of hyperlinks in article text
+    - total characters in article text
+    - short description of the article
+    - 'good article' tag from wikipedia
+    - namespace id of the article
+    - total sections + subsections in article text
+    - article text if store_raw_text is set to True
+
+    """
     article_basics = get_article_basics()
     print
     ray.get(
         [
-            update_article_metadata_batch.remote(batch)
+            update_article_metadata_batch.remote(batch, store_raw_text)
             for batch in get_batch(article_basics, batch_size=batch_size)
         ]
     )
 
 
-if __name__ == "__main__":
+def store_article_metadata() -> None:
+    """
+    Store all relevant artile metadata to database
+    Wikipedia offers two types of dump files
+        1. pages-articles-multistream.xml.bz2
+           Huge file containing article text + additional metadata
+        2. pages-articles-multistream-index.txt.bz2
+           Contains article id, article title and byte offset
+           byte offset corresponds to the location of article (chunk) inside 1
+
+    We first store all the basics (id, title and byte offsets).
+    We then use the stored article offsets to get more metadata from 1 in parallel
+    """
     store_article_basics(batch_size=1000000)
-    update_articles_metadata(100)
+    update_article_metadata(batch_size=100)
+
+
+if __name__ == "__main__":
+    store_article_metadata()
