@@ -205,7 +205,7 @@ def update_article_metadata(
 
 def store_article_metadata() -> None:
     """
-    Store all relevant artile metadata to database
+    Store all relevant article metadata to database
     Wikipedia offers two types of dump files
         1. pages-articles-multistream.xml.bz2
            Huge file containing article text + additional metadata
