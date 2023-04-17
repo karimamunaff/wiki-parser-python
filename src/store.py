@@ -145,7 +145,7 @@ def get_batch(data: List[Any], batch_size: int = 1000):
 
 def get_article_basics() -> List[Tuple[int, int, int]]:
     articles_database = Table(name="articles", columns=ArticlesTableColumns())
-    article_basic_data = articles_database.select_query(
+    article_basic_data = articles_database.execute(
         "select distinct bz2_offset_start, bz2_offset_end from articles"
     )
     return article_basic_data
@@ -203,6 +203,13 @@ def update_article_metadata(
     )
 
 
+def create_index_on_title() -> None:
+    database_table = Table(name="articles", columns=ArticlesTableColumns())
+    database_table.execute(
+        "CREATE INDEX title_index ON articles (title)", commit=True, fetch=False
+    )
+
+
 def store_article_metadata() -> None:
     """
     Store all relevant article metadata to database
@@ -218,6 +225,7 @@ def store_article_metadata() -> None:
     """
     store_article_basics(batch_size=1000000)
     update_article_metadata(batch_size=100)
+    create_index_on_title()
 
 
 if __name__ == "__main__":
