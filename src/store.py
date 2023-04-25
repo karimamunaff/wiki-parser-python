@@ -9,7 +9,8 @@ from tqdm import tqdm
 from database import ArticlesTableColumns, Table
 from paths import ENWIKI_ARTICLES_BZ2_FILE, ENWIKI_INDEX_BZ2_FILE
 
-ray.init(address="auto")
+if not ray.is_initialized():
+    ray.init(address="auto")
 
 
 def generate_article_columns(
@@ -55,7 +56,7 @@ def iterate_index_file(batch_size=1000) -> List[ArticlesTableColumns]:
                         article_titles_collection,
                         previous_offset,
                         current_offset,
-                        line_number,
+                        list(range(len(article_ids_collection))),
                     )
                 )
                 article_ids_collection = []
@@ -71,7 +72,7 @@ def iterate_index_file(batch_size=1000) -> List[ArticlesTableColumns]:
             article_titles_collection,
             previous_offset,
             -1,
-            line_number,
+            list(range(len(article_ids_collection))),
         )
     )
     yield article_columns_collection

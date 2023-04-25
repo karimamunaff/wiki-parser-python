@@ -1,10 +1,10 @@
 import sqlite3
-from typing import List, Tuple, Protocol, Union
+from typing import List, Tuple, Protocol, Union, Any
 from paths import METADATA_DATABASE_FILE
 from dataclasses import dataclass, field
 from lxml import etree
 import re
-from regex_collection import (
+from regexes import (
     LINKS_REGEX,
     SECTIONS_AND_SUBSECTIONS_REGEX,
     SHORT_DESCRPTION_REGEX,
@@ -33,6 +33,8 @@ class DatabaseQuery:
         result = []
         if not arguments_batch:
             cursor.execute(self.query)
+        elif self.query.lower().lstrip().startswith("select"):
+            cursor.execute(self.query, arguments_batch)
         else:
             cursor.executemany(self.query, arguments_batch)
         if self.fetch:
@@ -231,12 +233,14 @@ class Table:
         column_values_collection = [
             columns.column_values for columns in columns_collection
         ]
-        DatabaseQuery(
+        self.execute(
             query=f"INSERT OR IGNORE INTO {self.name} ({','.join(column_names)}) \
                     VALUES ({','.join(['?']*len(column_names))})",
             arguments=column_values_collection,
             commit=True,
-        ).execute(batch_size)
+            fetch=False,
+            batch_size=batch_size,
+        )
 
     def update(
         self,
@@ -252,19 +256,28 @@ class Table:
             else f"{column_names[0]} = ?"
         )
         set_string += " = ?"
-        DatabaseQuery(
+        self.execute(
             query=f"UPDATE {self.name} SET {set_string} WHERE id = ?;",
             arguments=query_arguments,
             commit=True,
-        ).execute(batch_size)
+            fetch=False,
+            batch_size=batch_size,
+        )
 
     def select(self, column_names: List[str]) -> None:
-        return DatabaseQuery(
-            query=f"SELECT {','.join(column_names)} FROM {self.name}", fetch=True
-        ).execute()
+        return self.execute(query=f"SELECT {','.join(column_names)} FROM {self.name}")
 
-    def select_query(self, query: str, batch_size: int = 10000) -> None:
-        return DatabaseQuery(query=query, fetch=True).execute(batch_size)
+    def execute(
+        self,
+        query: str,
+        arguments: List[Any] = [],
+        batch_size: int = 10000,
+        fetch: bool = True,
+        commit: bool = False,
+    ) -> None:
+        return DatabaseQuery(
+            query=query, arguments=arguments, fetch=fetch, commit=commit
+        ).execute(batch_size)
 
 
 def test():
