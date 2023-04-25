@@ -39,3 +39,7 @@ def get_raw_text(titles: List[str]) -> Dict[str, str]:
         for columns in columns_chunk
         if columns.title in titles
     }
+
+
+a = get_raw_text(["Barcelona", "Chevrolet Malibu"])
+print(a[1][:2000])
